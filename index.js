@@ -39,6 +39,7 @@ async function sendNotification(userId, title, message) {
 }
 
 export default async ({ req, res, log, error }) => {
+  log("🚀 Début d'exécution de la fonction CRON");
   const client = new sdk.Client()
     .setEndpoint(process.env.APPWRITE_ENDPOINT)
     .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
@@ -48,7 +49,7 @@ export default async ({ req, res, log, error }) => {
   const collectionId = "67ac5d12002d34cea58a";
 
   try {
-    log("🚀 Début d'exécution de la fonction CRON");
+    log("🚀 Début d'exécution de la fonction CRON avec les tâches");
     const result = await database.listDocuments(databaseId, collectionId);
     const tasks = result.documents;
 
