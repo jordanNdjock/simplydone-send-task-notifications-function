@@ -82,8 +82,10 @@ export default async ({ req, res, log, error }) => {
   log("🚀 Début d'exécution de la fonction CRON avec les tâches");
   const result = await database.listDocuments(databaseId, collectionId);
   const tasks = result.documents;
+  log(`Nombre de tâches récupérées : ${tasks.length}`);
 
   for (const task of tasks) {
+    log("🚀 Début de la tâche");
     const { user_id, title, start_date, end_date } = task;
 
     if (!user_id || !title) continue;
