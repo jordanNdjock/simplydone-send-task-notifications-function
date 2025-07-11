@@ -3,7 +3,7 @@
   "type": "module",
   "dependencies": {
     "node-fetch": "^3.3.1",
-    "node-appwrite": "^10.1.0"
+    "node-appwrite": "^17.0.0"
   }
 }
 

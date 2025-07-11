@@ -1,5 +1,5 @@
 import fetch from "node-fetch";
-const sdk = require("node-appwrite");
+import * as sdk from "node-appwrite";
 
 
 function parseDate(dateStr) {
