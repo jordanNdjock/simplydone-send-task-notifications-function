@@ -48,6 +48,7 @@ export default async ({ req, res, log, error }) => {
   const collectionId = "67ac5d12002d34cea58a";
 
   try {
+    log("🚀 Début d'exécution de la fonction CRON");
     const result = await database.listDocuments(databaseId, collectionId);
     const tasks = result.documents;
 
@@ -93,7 +94,7 @@ export default async ({ req, res, log, error }) => {
       }
     }
 
-    res.json({ status: "done", total: tasks.length });
+    res.json({ status: "done", total: tasks.length,  });
   } catch (err) {
     error("❌ Erreur Appwrite :", err.message);
     res.json({ error: err.message }, { status: 500 });
