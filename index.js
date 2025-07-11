@@ -10,7 +10,7 @@ function parseDate(dateStr) {
 
 
 
-function daysDiffFromToday(dateStr) {
+function daysDiffFromToday(dateStr, log) {
   const date = parseDate(dateStr);
   if (!date) return null;
 
@@ -19,11 +19,13 @@ function daysDiffFromToday(dateStr) {
   date.setHours(0, 0, 0, 0);
 
   const diff = (date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
+  log(`différence de jours : ${Math.floor(diff)}`);
   return Math.floor(diff);
 }
 
 
-async function sendNotification(userId, title, message) {
+async function sendNotification(userId, title, message, log) {
+  log(`🔔 Envoi de la notification à l'utilisateur ${userId} : ${title} - ${message}`);
   const url = "https://onesignal.com/api/v1/notifications";
   const options = {
     method: "POST",
@@ -41,10 +43,12 @@ async function sendNotification(userId, title, message) {
   };
 
   const res = await fetch(url, options);
+  log(`retour de la requête sendNotification :`, res.status, res.statusText);
   return res.json();
 }
 
 export default async ({ req, res, log, error }) => {
+  log("🚀 Début d'exécution de la fonction CRON");
   const client = new sdk.Client()
     .setEndpoint(process.env.APPWRITE_ENDPOINT)
     .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
@@ -54,6 +58,7 @@ export default async ({ req, res, log, error }) => {
   const collectionId = "67ac5d12002d34cea58a";
 
   try {
+  log("🚀 Début d'exécution de la fonction CRON avec les tâches");
   const result = await database.listDocuments(databaseId, collectionId);
   const tasks = result.documents;
   log(`Nombre de tâches récupérées : ${tasks.length}`);
@@ -74,6 +79,8 @@ export default async ({ req, res, log, error }) => {
     if (startDiff === null) {
       continue;
     }
+    log(`start_date pour la tâche « ${title} » :`, start_date);
+    log(`Différence de jours pour début de la tâche « ${title} » : ${startDiff}`);
 
     if (startDiff === 1) {
       log(`startDiff === 1`);
@@ -82,6 +89,7 @@ export default async ({ req, res, log, error }) => {
         "📅 Tâche à venir",
         `Ta tâche « ${title} » commence demain ! Prépare-toi.`
       );
+      log(`🔔 Pré-notif start pour ${title}`);
     } else if (startDiff === 0) {
       log(`startDiff === 0`);
       await sendNotification(
@@ -89,25 +97,31 @@ export default async ({ req, res, log, error }) => {
         "⏰ Tâche à faire aujourd’hui",
         `C’est aujourd’hui le début de ta tâche « ${title} ». À toi de jouer !`
       );
+      log(`🔔 Jour-J start pour ${title}`);
     }
 
+    log(`start_date pour la tâche « ${title} » :`, end_date);
     const endDiff = daysDiffFromToday(end_date);
     if (endDiff === null) {
       continue;
     }
 
     if (endDiff === 0 && !isSameDate) {
+      log(`endDiff === 0`);
       await sendNotification(
         user_id,
         "📌 Tâche à terminer aujourd’hui",
         `Aujourd’hui est le dernier jour pour la tâche « ${title} ». Termine-la !`
       );
+      log(`🔔 Jour-J fin pour ${title}`);
     } else if (endDiff === -1) {
+      log(`endDiff === -1`);
       await sendNotification(
         user_id,
         "✅ Tâche passée",
         `La tâche « ${title} » est passée hier. Pense à vérifier son statut ou à la clôturer.`
       );
+      log(`🔔 Post-notif fin pour ${title}`);
     }
   }
 
