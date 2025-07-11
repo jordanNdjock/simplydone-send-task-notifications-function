@@ -26,7 +26,7 @@ function parseDate(dateStr) {
   ) {
     return null;
   }
-
+  log(`date : ${date}`);
   return date;
 }
 
@@ -40,6 +40,7 @@ function daysDiffFromToday(dateStr) {
   date.setHours(0, 0, 0, 0);
 
   const diff = (date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
+  log(`diff : ${Math.floor(diff)}`);
   return Math.floor(diff);
 }
 
@@ -84,12 +85,10 @@ export default async ({ req, res, log, error }) => {
 
   for (const task of tasks) {
     const { user_id, title, start_date, end_date } = task;
-    log("Tâche actuelle :", task);
 
     if (!user_id || !title) continue;
 
     if (!start_date || !end_date) {
-      log(`⚠️ Ignored task "${title}" due to missing start_date or end_date`);
       continue;
     }
 
@@ -97,12 +96,12 @@ export default async ({ req, res, log, error }) => {
 
     const startDiff = daysDiffFromToday(start_date);
     if (startDiff === null) {
-      log(`⚠️ Date de début invalide pour la tâche "${title}"`);
       continue;
     }
     log(`Différence de jours pour début de la tâche « ${title} » : ${startDiff}`);
 
     if (startDiff === 1) {
+      log(`startDiff === 1`);
       await sendNotification(
         user_id,
         "📅 Tâche à venir",
@@ -110,6 +109,7 @@ export default async ({ req, res, log, error }) => {
       );
       log(`🔔 Pré-notif start pour ${title}`);
     } else if (startDiff === 0) {
+      log(`startDiff === 0`);
       await sendNotification(
         user_id,
         "⏰ Tâche à faire aujourd’hui",
@@ -120,11 +120,11 @@ export default async ({ req, res, log, error }) => {
 
     const endDiff = daysDiffFromToday(end_date);
     if (endDiff === null) {
-      log(`⚠️ Date de fin invalide pour la tâche "${title}"`);
       continue;
     }
 
     if (endDiff === 0 && !isSameDate) {
+      log(`endDiff === 0`);
       await sendNotification(
         user_id,
         "📌 Tâche à terminer aujourd’hui",
@@ -132,6 +132,7 @@ export default async ({ req, res, log, error }) => {
       );
       log(`🔔 Jour-J fin pour ${title}`);
     } else if (endDiff === -1) {
+      log(`endDiff === -1`);
       await sendNotification(
         user_id,
         "✅ Tâche passée",
