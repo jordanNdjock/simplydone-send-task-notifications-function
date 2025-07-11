@@ -3,19 +3,46 @@ import * as sdk from "node-appwrite";
 
 
 function parseDate(dateStr) {
-  const [day, month, year] = dateStr.split("/").map(Number);
-  return new Date(year, month - 1, day);
+  if (!dateStr) return null;
+  const parts = dateStr.split("/");
+  if (parts.length !== 3) return null;
+  const [day, month, year] = parts.map(Number);
+
+  if (
+    isNaN(day) || isNaN(month) || isNaN(year) ||
+    day < 1 || day > 31 ||
+    month < 1 || month > 12 ||
+    year < 1000
+  ) {
+    return null;
+  }
+
+  const date = new Date(year, month - 1, day);
+
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== (month - 1) ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+
+  return date;
 }
 
+
 function daysDiffFromToday(dateStr) {
-  if (!dateStr) return null;
   const date = parseDate(dateStr);
+  if (!date) return null;
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   date.setHours(0, 0, 0, 0);
+
   const diff = (date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
   return Math.floor(diff);
 }
+
 
 async function sendNotification(userId, title, message) {
   log("🚀 Début d'exécution de la fonction sendNotification");
@@ -51,58 +78,77 @@ export default async ({ req, res, log, error }) => {
   const collectionId = "67ac5d12002d34cea58a";
 
   try {
-    log("🚀 Début d'exécution de la fonction CRON avec les tâches");
-    const result = await database.listDocuments(databaseId, collectionId);
-    const tasks = result.documents;
-    log("Liste des tâches :", tasks);
+  log("🚀 Début d'exécution de la fonction CRON avec les tâches");
+  const result = await database.listDocuments(databaseId, collectionId);
+  const tasks = result.documents;
 
-    for (const task of tasks) {
-      log("🚀 Début d'exécution de la fonction dans la boucle");
-      const { user_id, title, start_date, end_date } = task;
-      log("Tâche actuelle :", task);
-      if (!user_id || !title) continue;
+  for (const task of tasks) {
+    const { user_id, title, start_date, end_date } = task;
+    log("Tâche actuelle :", task);
 
-      const isSameDate = start_date && end_date && start_date === end_date;
+    if (!user_id || !title) continue;
 
-      const startDiff = daysDiffFromToday(start_date);
-      log(`Différence de jours pour le début de la tâche « ${title} » : ${startDiff}`);
-      if (startDiff === 1) {
-        await sendNotification(
-          user_id,
-          "📅 Tâche à venir",
-          `Ta tâche « ${title} » commence demain ! Prépare-toi.`
-        );
-        log(`🔔 Pré-notif start pour ${title}`);
-      } else if (startDiff === 0) {
-        await sendNotification(
-          user_id,
-          "⏰ Tâche à faire aujourd’hui",
-          `C’est aujourd’hui le début de ta tâche « ${title} ». À toi de jouer !`
-        );
-        log(`🔔 Jour-J start pour ${title}`);
-      }
-
-      const endDiff = daysDiffFromToday(end_date);
-      if (endDiff === 0 && !isSameDate) {
-        await sendNotification(
-          user_id,
-          "📌 Tâche à terminer aujourd’hui",
-          `Aujourd’hui est le dernier jour pour la tâche « ${title} ». Termine-la !`
-        );
-        log(`🔔 Jour-J fin pour ${title}`);
-      } else if (endDiff === -1) {
-        await sendNotification(
-          user_id,
-          "✅ Tâche passée",
-          `La tâche « ${title} » est passée hier. Pense à vérifier son statut ou à la clôturer.`
-        );
-        log(`🔔 Post-notif fin pour ${title}`);
-      }
+    if (!start_date || !end_date) {
+      log(`⚠️ Ignored task "${title}" due to missing start_date or end_date`);
+      continue;
     }
 
-    res.json({ status: "done", total: tasks.length,  });
-  } catch (err) {
-    error("❌ Erreur Appwrite :", err.message);
-    res.json({ error: err.message }, { status: 500 });
+    const isSameDate = start_date === end_date;
+
+    const startDiff = daysDiffFromToday(start_date);
+    if (startDiff === null) {
+      log(`⚠️ Date de début invalide pour la tâche "${title}"`);
+      continue;
+    }
+    log(`Différence de jours pour début de la tâche « ${title} » : ${startDiff}`);
+
+    if (startDiff === 1) {
+      await sendNotification(
+        user_id,
+        "📅 Tâche à venir",
+        `Ta tâche « ${title} » commence demain ! Prépare-toi.`
+      );
+      log(`🔔 Pré-notif start pour ${title}`);
+    } else if (startDiff === 0) {
+      await sendNotification(
+        user_id,
+        "⏰ Tâche à faire aujourd’hui",
+        `C’est aujourd’hui le début de ta tâche « ${title} ». À toi de jouer !`
+      );
+      log(`🔔 Jour-J start pour ${title}`);
+    }
+
+    const endDiff = daysDiffFromToday(end_date);
+    if (endDiff === null) {
+      log(`⚠️ Date de fin invalide pour la tâche "${title}"`);
+      continue;
+    }
+
+    if (endDiff === 0 && !isSameDate) {
+      await sendNotification(
+        user_id,
+        "📌 Tâche à terminer aujourd’hui",
+        `Aujourd’hui est le dernier jour pour la tâche « ${title} ». Termine-la !`
+      );
+      log(`🔔 Jour-J fin pour ${title}`);
+    } else if (endDiff === -1) {
+      await sendNotification(
+        user_id,
+        "✅ Tâche passée",
+        `La tâche « ${title} » est passée hier. Pense à vérifier son statut ou à la clôturer.`
+      );
+      log(`🔔 Post-notif fin pour ${title}`);
+    }
   }
+
+  return res.json({ status: "done", total: tasks.length });
+} catch (err) {
+  error("❌ Erreur Appwrite :", err.message);
+  return res.json({ error: err.message }, { status: 500 });
+}
+
 };
+
+
+
+
