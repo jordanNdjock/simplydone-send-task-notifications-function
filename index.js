@@ -1,51 +1,23 @@
 import fetch from "node-fetch";
 const sdk = require("node-appwrite");
 
-const databaseId = "67ac5d080011ce7ff124";
-const collectionId = "67ac5d12002d34cea58a";
 
-const shouldNotifyToday = (dateStr) => {
-  const [day, month, year] = dateStr.split('/').map(Number);
-  const taskDate = new Date(year, month - 1, day);
+function parseDate(dateStr) {
+  const [day, month, year] = dateStr.split("/").map(Number);
+  return new Date(year, month - 1, day);
+}
 
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  taskDate.setHours(0, 0, 0, 0);
+function daysDiffFromToday(dateStr) {
+  if (!dateStr) return null;
+  const date = parseDate(dateStr);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  date.setHours(0, 0, 0, 0);
+  const diff = (date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
+  return Math.floor(diff);
+}
 
-  const diff = taskDate.getTime() - now.getTime();
-  const diffDays = diff / (1000 * 60 * 60 * 24);
-
-  return diffDays === 1;
-};
-
-
-export default async ({ req, res, log, error }) => {
-  const client = new sdk.Client()
-    .setEndpoint(process.env.APPWRITE_ENDPOINT)
-    .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
-    .setKey(process.env.APPWRITE_API_KEY);
-
-  const db = new sdk.Databases(client);
-
-  try {
-    const result = await db.listDocuments(databaseId, collectionId);
-    const tasks = result.documents;
-
-    for (const task of tasks) {
-      if (shouldNotifyToday(task.deadline)) {
-        await sendNotification(task.userId, task.title);
-        log(`✅ Notification envoyée à ${task.userId} pour la tâche « ${task.title} »`);
-      }
-    }
-
-    res.json({ status: "done" });
-  } catch (err) {
-    error("❌ Erreur :", err.message);
-    res.json({ error: err.message }, { status: 500 });
-  }
-};
-
-async function sendNotification(userId, taskTitle) {
+async function sendNotification(userId, title, message) {
   const url = "https://onesignal.com/api/v1/notifications";
   const options = {
     method: "POST",
@@ -56,8 +28,8 @@ async function sendNotification(userId, taskTitle) {
     },
     body: JSON.stringify({
       app_id: process.env.ONESIGNAL_APP_ID,
-      headings: { en: "⏰ Rappel de tâche" },
-      contents: { en: `Ta tâche « ${taskTitle} » est prévue pour demain !` },
+      headings: { en: title },
+      contents: { en: message },
       include_external_user_ids: [userId],
     }),
   };
@@ -65,3 +37,66 @@ async function sendNotification(userId, taskTitle) {
   const res = await fetch(url, options);
   return res.json();
 }
+
+export default async ({ req, res, log, error }) => {
+  const client = new sdk.Client()
+    .setEndpoint(process.env.APPWRITE_ENDPOINT)
+    .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
+    .setKey(process.env.APPWRITE_API_KEY);
+
+  const database = new sdk.Databases(client);
+  const databaseId = "67ac5d080011ce7ff124";
+  const collectionId = "67ac5d12002d34cea58a";
+
+  try {
+    const result = await database.listDocuments(databaseId, collectionId);
+    const tasks = result.documents;
+
+    for (const task of tasks) {
+      const { user_id, title, start_date, end_date } = task;
+
+      if (!user_id || !title) continue;
+
+      const isSameDate = start_date && end_date && start_date === end_date;
+
+      const startDiff = daysDiffFromToday(start_date);
+      if (startDiff === 1) {
+        await sendNotification(
+          user_id,
+          "📅 Tâche à venir",
+          `Ta tâche « ${title} » commence demain ! Prépare-toi.`
+        );
+        log(`🔔 Pré-notif start pour ${title}`);
+      } else if (startDiff === 0) {
+        await sendNotification(
+          user_id,
+          "⏰ Tâche à faire aujourd’hui",
+          `C’est aujourd’hui le début de ta tâche « ${title} ». À toi de jouer !`
+        );
+        log(`🔔 Jour-J start pour ${title}`);
+      }
+
+      const endDiff = daysDiffFromToday(end_date);
+      if (endDiff === 0 && !isSameDate) {
+        await sendNotification(
+          user_id,
+          "📌 Tâche à terminer aujourd’hui",
+          `Aujourd’hui est le dernier jour pour la tâche « ${title} ». Termine-la !`
+        );
+        log(`🔔 Jour-J fin pour ${title}`);
+      } else if (endDiff === -1) {
+        await sendNotification(
+          user_id,
+          "✅ Tâche passée",
+          `La tâche « ${title} » est passée hier. Pense à vérifier son statut ou à la clôturer.`
+        );
+        log(`🔔 Post-notif fin pour ${title}`);
+      }
+    }
+
+    res.json({ status: "done", total: tasks.length });
+  } catch (err) {
+    error("❌ Erreur Appwrite :", err.message);
+    res.json({ error: err.message }, { status: 500 });
+  }
+};
