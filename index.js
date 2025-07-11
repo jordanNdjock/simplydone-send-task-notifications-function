@@ -4,31 +4,10 @@ import * as sdk from "node-appwrite";
 
 function parseDate(dateStr) {
   if (!dateStr) return null;
-  const parts = dateStr.split("/");
-  if (parts.length !== 3) return null;
-  const [day, month, year] = parts.map(Number);
-
-  if (
-    isNaN(day) || isNaN(month) || isNaN(year) ||
-    day < 1 || day > 31 ||
-    month < 1 || month > 12 ||
-    year < 1000
-  ) {
-    return null;
-  }
-
-  const date = new Date(year, month - 1, day);
-
-  if (
-    date.getFullYear() !== year ||
-    date.getMonth() !== (month - 1) ||
-    date.getDate() !== day
-  ) {
-    return null;
-  }
-  log(`date : ${date}`);
-  return date;
+  const [day, month, year] = dateStr.split("-").map(Number);
+  return new Date(year, month - 1, day);
 }
+
 
 
 function daysDiffFromToday(dateStr) {
@@ -100,6 +79,7 @@ export default async ({ req, res, log, error }) => {
     if (startDiff === null) {
       continue;
     }
+    log(`start_date pour la tâche « ${title} » :`, start_date);
     log(`Différence de jours pour début de la tâche « ${title} » : ${startDiff}`);
 
     if (startDiff === 1) {
@@ -120,6 +100,7 @@ export default async ({ req, res, log, error }) => {
       log(`🔔 Jour-J start pour ${title}`);
     }
 
+    log(`start_date pour la tâche « ${title} » :`, end_date);
     const endDiff = daysDiffFromToday(end_date);
     if (endDiff === null) {
       continue;
