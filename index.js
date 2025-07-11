@@ -75,7 +75,7 @@ export default async ({ req, res, log, error }) => {
 
     const isSameDate = start_date === end_date;
 
-    const startDiff = daysDiffFromToday(start_date);
+    const startDiff = daysDiffFromToday(start_date, log);
     if (startDiff === null) {
       continue;
     }
@@ -87,7 +87,8 @@ export default async ({ req, res, log, error }) => {
       await sendNotification(
         user_id,
         "📅 Tâche à venir",
-        `Ta tâche « ${title} » commence demain ! Prépare-toi.`
+        `Ta tâche « ${title} » commence demain ! Prépare-toi.`,
+        log
       );
       log(`🔔 Pré-notif start pour ${title}`);
     } else if (startDiff === 0) {
@@ -95,13 +96,14 @@ export default async ({ req, res, log, error }) => {
       await sendNotification(
         user_id,
         "⏰ Tâche à faire aujourd’hui",
-        `C’est aujourd’hui le début de ta tâche « ${title} ». À toi de jouer !`
+        `C’est aujourd’hui le début de ta tâche « ${title} ». À toi de jouer !`,
+        log
       );
       log(`🔔 Jour-J start pour ${title}`);
     }
 
     log(`start_date pour la tâche « ${title} » :`, end_date);
-    const endDiff = daysDiffFromToday(end_date);
+    const endDiff = daysDiffFromToday(end_date, log);
     if (endDiff === null) {
       continue;
     }
@@ -111,7 +113,8 @@ export default async ({ req, res, log, error }) => {
       await sendNotification(
         user_id,
         "📌 Tâche à terminer aujourd’hui",
-        `Aujourd’hui est le dernier jour pour la tâche « ${title} ». Termine-la !`
+        `Aujourd’hui est le dernier jour pour la tâche « ${title} ». Termine-la !`, 
+        log
       );
       log(`🔔 Jour-J fin pour ${title}`);
     } else if (endDiff === -1) {
@@ -119,7 +122,8 @@ export default async ({ req, res, log, error }) => {
       await sendNotification(
         user_id,
         "✅ Tâche passée",
-        `La tâche « ${title} » est passée hier. Pense à vérifier son statut ou à la clôturer.`
+        `La tâche « ${title} » est passée hier. Pense à vérifier son statut ou à la clôturer.`,
+        log
       );
       log(`🔔 Post-notif fin pour ${title}`);
     }
