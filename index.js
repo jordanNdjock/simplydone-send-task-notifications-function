@@ -42,7 +42,6 @@ export default async ({ req, res, log, error }) => {
   const client = new sdk.Client()
     .setEndpoint(process.env.APPWRITE_ENDPOINT)
     .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
-    .setKey(process.env.APPWRITE_API_KEY);
 
   const database = new sdk.Databases(client);
   const databaseId = "67ac5d080011ce7ff124";
