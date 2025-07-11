@@ -18,6 +18,7 @@ function daysDiffFromToday(dateStr) {
 }
 
 async function sendNotification(userId, title, message) {
+  log("🚀 Début d'exécution de la fonction sendNotification");
   const url = "https://onesignal.com/api/v1/notifications";
   const options = {
     method: "POST",
@@ -35,6 +36,7 @@ async function sendNotification(userId, title, message) {
   };
 
   const res = await fetch(url, options);
+  log("retour de la requête sendNotification :", res.status, res.statusText);
   return res.json();
 }
 
@@ -52,15 +54,18 @@ export default async ({ req, res, log, error }) => {
     log("🚀 Début d'exécution de la fonction CRON avec les tâches");
     const result = await database.listDocuments(databaseId, collectionId);
     const tasks = result.documents;
+    log("Liste des tâches :", tasks);
 
     for (const task of tasks) {
+      log("🚀 Début d'exécution de la fonction dans la boucle");
       const { user_id, title, start_date, end_date } = task;
-
+      log("Tâche actuelle :", task);
       if (!user_id || !title) continue;
 
       const isSameDate = start_date && end_date && start_date === end_date;
 
       const startDiff = daysDiffFromToday(start_date);
+      log(`Différence de jours pour le début de la tâche « ${title} » : ${startDiff}`);
       if (startDiff === 1) {
         await sendNotification(
           user_id,
