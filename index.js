@@ -10,7 +10,7 @@ function parseDate(dateStr) {
 
 
 
-function daysDiffFromToday(dateStr, log) {
+function daysDiffFromToday(dateStr) {
   const date = parseDate(dateStr);
   if (!date) return null;
 
@@ -19,7 +19,6 @@ function daysDiffFromToday(dateStr, log) {
   date.setHours(0, 0, 0, 0);
 
   const diff = (date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
-  log(`différence de jours : ${Math.floor(diff)}`);
   return Math.floor(diff);
 }
 
@@ -87,7 +86,7 @@ export default async ({ req, res, log, error }) => {
       await sendNotification(
         user_id,
         "📅 Tâche à venir",
-        `Ta tâche « ${title} » commence demain ! Prépare-toi.`,
+        `Votre tâche « ${title} » commence demain ! Préparez-vous.`,
         log
       );
       log(`🔔 Pré-notif start pour ${title}`);
@@ -96,24 +95,29 @@ export default async ({ req, res, log, error }) => {
       await sendNotification(
         user_id,
         "⏰ Tâche à faire aujourd’hui",
-        `C’est aujourd’hui le début de ta tâche « ${title} ». À toi de jouer !`,
+        `C’est aujourd’hui le début de votre tâche « ${title} ». À vous de jouer !`,
         log
       );
       log(`🔔 Jour-J start pour ${title}`);
     }
 
-    log(`start_date pour la tâche « ${title} » :`, end_date);
     const endDiff = daysDiffFromToday(end_date, log);
     if (endDiff === null) {
       continue;
     }
+    if(endDiff < -1) {
+      log(`endDiff < -1, la tâche « ${title} » est déjà passée et ignorée.`);
+      continue;
+    }
+    log(`end_date pour la tâche « ${title} » :`, start_date);
+    log(`Différence de jours pour fin de la tâche « ${title} » : ${endDiff}`);
 
     if (endDiff === 0 && !isSameDate) {
       log(`endDiff === 0`);
       await sendNotification(
         user_id,
         "📌 Tâche à terminer aujourd’hui",
-        `Aujourd’hui est le dernier jour pour la tâche « ${title} ». Termine-la !`, 
+        `Aujourd’hui est le dernier jour pour la tâche « ${title} ». Terminez-la !`, 
         log
       );
       log(`🔔 Jour-J fin pour ${title}`);
@@ -122,10 +126,20 @@ export default async ({ req, res, log, error }) => {
       await sendNotification(
         user_id,
         "✅ Tâche passée",
-        `La tâche « ${title} » est passée hier. Pense à vérifier son statut ou à la clôturer.`,
+        `La tâche « ${title} » est passée hier. Pensez à vérifier son statut ou à la clôturer.`,
         log
       );
       log(`🔔 Post-notif fin pour ${title}`);
+    }
+
+    if (startDiff < 0 && endDiff > 0) {
+      await sendNotification(
+        user_id,
+        "🕒 Tâche en cours",
+        `La tâche « ${title} » est toujours en cours. Il vous reste ${endDiff} jour${endDiff > 1 ? 's' : ''} pour la clôturer. Courage 🔥💪`,
+        log
+      );
+      log(`🔔 Notif quotidienne pour tâche en cours : ${title}`);
     }
   }
 
