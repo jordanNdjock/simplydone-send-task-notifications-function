@@ -38,6 +38,7 @@ async function sendNotification(userId, title, message, log) {
       headings: { en: title },
       contents: { en: message },
       include_external_user_ids: [userId],
+      external_id: `${userId}-${title}-${Date.now()}`
     }),
   };
 
