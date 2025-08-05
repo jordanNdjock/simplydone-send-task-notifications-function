@@ -22,6 +22,9 @@ function daysDiffFromToday(dateStr) {
   return Math.floor(diff);
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 async function sendNotification(userId, title, message, log) {
   log(`🔔 Envoi de la notification à l'utilisateur ${userId} : ${title} - ${message}`);
@@ -141,6 +144,7 @@ export default async ({ req, res, log, error }) => {
         log
       );
       log(`🔔 Notif quotidienne pour tâche en cours : ${title}`);
+      await sleep(1000);
     }
   }
 
