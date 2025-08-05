@@ -94,6 +94,7 @@ export default async ({ req, res, log, error }) => {
         log
       );
       log(`🔔 Pré-notif start pour ${title}`);
+      await sleep(500);
     } else if (startDiff === 0) {
       log(`startDiff === 0`);
       await sendNotification(
@@ -103,6 +104,7 @@ export default async ({ req, res, log, error }) => {
         log
       );
       log(`🔔 Jour-J start pour ${title}`);
+      await sleep(500);
     }
 
     const endDiff = daysDiffFromToday(end_date, log);
@@ -125,6 +127,7 @@ export default async ({ req, res, log, error }) => {
         log
       );
       log(`🔔 Jour-J fin pour ${title}`);
+      await sleep(500);
     } else if (endDiff === -1) {
       log(`endDiff === -1`);
       await sendNotification(
@@ -134,6 +137,7 @@ export default async ({ req, res, log, error }) => {
         log
       );
       log(`🔔 Post-notif fin pour ${title}`);
+      await sleep(500);
     }
 
     if (startDiff < 0 && endDiff > 0) {
