@@ -50,7 +50,15 @@ async function sendNotification(userId, title, message, log) {
   return res.json();
 }
 
-async function getAllTasks (database, databaseId, collectionId) {
+async function getAllTasks () {
+  const client = new sdk.Client()
+    .setEndpoint(process.env.APPWRITE_ENDPOINT)
+    .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
+
+  const database = new sdk.Databases(client);
+  const databaseId = "67ac5d080011ce7ff124";
+  const collectionId = "67ac5d12002d34cea58a";
+
   const pageSize = 100;
 
   let allTasks = [];
@@ -63,9 +71,11 @@ async function getAllTasks (database, databaseId, collectionId) {
       Query.offset(page * pageSize),
     ]);
 
-    allTasks.push(...response.documents);
+    const docs = response?.documents ?? [];
 
-    if (response.documents.length < pageSize) {
+    allTasks.push(...docs);
+
+    if (docs.length < pageSize) {
       hasMore = false;
     } else {
       page++;
@@ -77,18 +87,11 @@ async function getAllTasks (database, databaseId, collectionId) {
 
 export default async ({ req, res, log, error }) => {
   log("🚀 Début d'exécution de la fonction CRON");
-  const client = new sdk.Client()
-    .setEndpoint(process.env.APPWRITE_ENDPOINT)
-    .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
-
-  const database = new sdk.Databases(client);
-  const databaseId = "67ac5d080011ce7ff124";
-  const collectionId = "67ac5d12002d34cea58a";
 
   try {
   log("🚀 Début d'exécution de la fonction CRON avec les tâches");
-  const result = await getAllTasks(database, databaseId, collectionId);
-  const tasks = result.documents;
+  const result = await getAllTasks();
+  const tasks = result;
   log(`Nombre de tâches récupérées : ${tasks.length}`);
 
   for (const task of tasks) {
