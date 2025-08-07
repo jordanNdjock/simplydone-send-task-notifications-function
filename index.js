@@ -1,6 +1,6 @@
 import fetch from "node-fetch";
 import * as sdk from "node-appwrite";
-
+const { Query } = sdk;
 
 function parseDate(dateStr) {
   if (!dateStr) return null;
