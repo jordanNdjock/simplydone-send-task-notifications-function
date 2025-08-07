@@ -50,6 +50,31 @@ async function sendNotification(userId, title, message, log) {
   return res.json();
 }
 
+async function getAllTasks (database, databaseId, collectionId) {
+  const pageSize = 100;
+
+  let allTasks = [];
+  let page = 0;
+  let hasMore = true;
+
+  while (hasMore) {
+    const response = await database.listDocuments(databaseId, collectionId, [
+      Query.limit(pageSize),
+      Query.offset(page * pageSize),
+    ]);
+
+    allTasks.push(...response.documents);
+
+    if (response.documents.length < pageSize) {
+      hasMore = false;
+    } else {
+      page++;
+    }
+  }
+
+  return allTasks;
+};
+
 export default async ({ req, res, log, error }) => {
   log("🚀 Début d'exécution de la fonction CRON");
   const client = new sdk.Client()
@@ -62,13 +87,13 @@ export default async ({ req, res, log, error }) => {
 
   try {
   log("🚀 Début d'exécution de la fonction CRON avec les tâches");
-  const result = await database.listDocuments(databaseId, collectionId);
+  const result = await getAllTasks(database, databaseId, collectionId);
   const tasks = result.documents;
   log(`Nombre de tâches récupérées : ${tasks.length}`);
 
   for (const task of tasks) {
+    log("🚀 Début de la tâche");
     const { user_id, title, start_date, end_date } = task;
-    log(`🚀 Début de la tâche : ${title}`);
 
     if (!user_id || !title) continue;
 
@@ -94,7 +119,7 @@ export default async ({ req, res, log, error }) => {
         log
       );
       log(`🔔 Pré-notif start pour ${title}`);
-      await sleep(1000);
+      await sleep(500);
     } else if (startDiff === 0) {
       log(`startDiff === 0`);
       await sendNotification(
@@ -104,7 +129,7 @@ export default async ({ req, res, log, error }) => {
         log
       );
       log(`🔔 Jour-J start pour ${title}`);
-      await sleep(1000);
+      await sleep(500);
     }
 
     const endDiff = daysDiffFromToday(end_date, log);
@@ -127,7 +152,7 @@ export default async ({ req, res, log, error }) => {
         log
       );
       log(`🔔 Jour-J fin pour ${title}`);
-      await sleep(1000);
+      await sleep(500);
     } else if (endDiff === -1) {
       log(`endDiff === -1`);
       await sendNotification(
@@ -137,7 +162,7 @@ export default async ({ req, res, log, error }) => {
         log
       );
       log(`🔔 Post-notif fin pour ${title}`);
-      await sleep(1000);
+      await sleep(500);
     }
 
     if (startDiff < 0 && endDiff > 0) {
