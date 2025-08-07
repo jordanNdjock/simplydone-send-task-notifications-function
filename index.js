@@ -67,8 +67,8 @@ export default async ({ req, res, log, error }) => {
   log(`Nombre de tâches récupérées : ${tasks.length}`);
 
   for (const task of tasks) {
-    log("🚀 Début de la tâche");
     const { user_id, title, start_date, end_date } = task;
+    log(`🚀 Début de la tâche : ${title}`);
 
     if (!user_id || !title) continue;
 
@@ -78,11 +78,11 @@ export default async ({ req, res, log, error }) => {
 
     const isSameDate = start_date === end_date;
 
-    log(`start_date pour la tâche « ${title} » :`, start_date);
     const startDiff = daysDiffFromToday(start_date, log);
     if (startDiff === null) {
       continue;
     }
+    log(`start_date pour la tâche « ${title} » :`, start_date);
     log(`Différence de jours pour début de la tâche « ${title} » : ${startDiff}`);
 
     if (startDiff === 1) {
