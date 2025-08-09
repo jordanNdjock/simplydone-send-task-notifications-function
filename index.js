@@ -176,7 +176,7 @@ export default async ({ req, res, log, error }) => {
         log
       );
       log(`🔔 Notif quotidienne pour tâche en cours : ${title}`);
-      await sleep(1000);
+      await sleep(2000);
     }
   }
 
